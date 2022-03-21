@@ -1,0 +1,114 @@
+from pynput import keyboard
+import os
+import random
+import time
+
+SIZE = 20
+SPEED = 0.5
+random.seed()
+
+tab = [[0 for x in range(SIZE)] for y in range(SIZE)]
+snake = [[int(SIZE/2), int(SIZE/2),"u"],[int(1+SIZE/2), int(SIZE/2), "u"],[int(2+SIZE/2), int(SIZE/2), "u"]]
+cDirection = "l"
+food = [0,0,False]
+snakeGrow = False
+score = 0
+
+def on_press(key):
+    if key == keyboard.Key.esc:
+        return False  # stop listener
+    try:
+        k = key.char  # single-char keys
+    except:
+        k = key.name  # other keys
+    if k in ['up', 'down', 'left', 'right']:  # keys of interest
+        global cDirection
+        cDirection = k[0]
+
+def createFood():
+    global food
+    if not food[2]:
+        while(True):
+            test = True
+            food[0]=random.randint(1,SIZE-2)
+            food[1]=random.randint(1,SIZE-2)
+            food[2]=True
+            for v in snake:
+                if food[0] == v[0] and food[1] == v[1]:
+                    test=False
+            if test:
+                break
+        
+def genTab():
+    for i in range(SIZE):
+        for j in range(SIZE):
+            if i==0 or i==SIZE-1:
+                tab[i][j] = "-"
+            elif j==0 or j==SIZE-1:
+                tab[i][j] = "|"
+            else:
+                tab[i][j] = " "        
+        
+def printTab():
+    os.system('cls')
+    print("Score: "+str(score))
+    genTab()
+    if food[2]:
+        tab[food[0]][food[1]] = "@"
+    for i,v in enumerate(snake):
+        if i==0:
+            tab[v[0]][v[1]] = "0"
+        else:
+            tab[v[0]][v[1]] = "*"
+    for l in tab:
+        print()
+        for i in l:
+            print(i+"  ", end = '')
+    print()
+    
+def detectCollision():
+    global food
+    global snakeGrow
+    head = snake[0]
+    if head[0]==food[0] and head[1]==food[1] and food[2]:
+        food[2]=False
+        snakeGrow = True
+    if head[0] == 0 or head[0] == SIZE-1 or head[1] == 0 or head[1] == SIZE-1:
+        return False
+    for i,v in enumerate(snake):
+        if i != 0:
+            if head[0] == v[0] and head[1] == v[1]:
+                return False
+    return True
+
+def move():
+    global snakeGrow
+    global score
+    last = [snake[len(snake)-1][0], snake[len(snake)-1][1], snake[len(snake)-1][2]]
+    snake[0][2]=cDirection
+    for v in snake:
+        if v[2]=='u':
+            v[0]=v[0]-1
+        elif v[2]=='d':
+            v[0]=v[0]+1
+        elif v[2]=='l':
+            v[1]=v[1]-1
+        elif v[2]=='r':
+            v[1]=v[1]+1
+
+    for i in range(len(snake)-1,0,-1):
+        snake[i][2] = snake[i-1][2]
+
+    if snakeGrow:
+        snake.append(last)
+        snakeGrow = False
+        score = score +1
+
+listener = keyboard.Listener(on_press=on_press)
+listener.start()  # start to listen on a separate thread
+
+while(detectCollision()):
+    time.sleep(SPEED)
+    createFood()
+    move()
+    printTab()
